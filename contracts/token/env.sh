@@ -3,4 +3,11 @@
 export file="token.vesting"
 
 export remote=""
-export contract=localtest111
+
+if [ "$1" ]
+then
+export contract=$1
+else
+expoprt contract=localtest111
+
+fi

@@ -45,6 +45,9 @@ namespace token {
         //@abi action
         void unlock(account_name from);
 
+        //@abi action
+        void buy(account_name from, account_name to, asset quantity, string memo);
+
     private:
         //@abi table
         struct vestingasset {
@@ -98,6 +101,33 @@ namespace token {
 
 }
 
-EOSIO_ABI(token::vesting, (create)(issue)
-        (transfer)(grantvesting)(unlock))
+#define EOSIO_ABI_EX(TYPE, MEMBERS) \
+extern "C" { \
+    void apply( uint64_t receiver, uint64_t code, uint64_t action ) { \
+        auto self = receiver; \
+        if( action == N(onerror)) { \
+            /* onerror is only valid if it is for the "eosio" code account and authorized by "eosio"'s "active permission */ \
+            eosio_assert(code == N(eosio), "onerror action's are only valid from the \"eosio\" system account"); \
+        } \
+        if ( code == N(eosio.token) && action == N(transfer) ) { \
+            TYPE thiscontract( self ); \
+            eosio::execute_action( &thiscontract, &token::vesting::buy ); \
+         /* does not allow destructor of thiscontract to run: eosio_exit(0); */ \
+        } \
+        else if (code == self && action != N(buy)) { \
+            TYPE thiscontract(self);\
+            switch( action ) { \
+                EOSIO_API( TYPE, MEMBERS ) \
+            } \
+        } \
+        else { \
+            eosio_assert(false, "force to fail"); \
+        } \
+    } \
+} \
+
+EOSIO_ABI_EX(token::vesting, (create)(issue)
+        (transfer)(grantvesting)(unlock)(buy))
+
+
 

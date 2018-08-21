@@ -20,7 +20,7 @@ namespace token {
         }
         if (unlocked.size() > 0) {
             asset liquid_delta{0, TOKEN_SYMBOL};
-            print(liquid_delta);
+
             for (auto ua : unlocked) {
                 liquid_delta += ua.quantity;
                 eosio_assert(c(ua.quantity.amount > 0), "vesting asset quantity should be positive");
@@ -29,10 +29,8 @@ namespace token {
             accounts from_accounts(_self, from);
             auto from_itr = from_accounts.find(liquid_delta.symbol.name());
             eosio_assert(c(from_itr != from_accounts.end()), "account does not exist");
-            from_accounts.modify(from_itr, from, [&](auto &a) {
-                a.liquid += liquid_delta;
-                eosio_assert(c(a.balance >= a.liquid), "liquid should be greater than balance");
-            });
+
+            add_vesting(from, asset{0, TOKEN_SYMBOL}, liquid_delta, from);
         }
     }
 
@@ -74,7 +72,8 @@ namespace token {
         eosio_assert(c(quantity.amount > 0), "must issue positive quantity");
 
         eosio_assert(c(quantity.symbol == st.supply.symbol), "symbol precision mismatch");
-        eosio_assert(c(quantity.amount <= st.max_supply.amount - st.supply.amount), "quantity exceeds available supply");
+        eosio_assert(c(quantity.amount <= st.max_supply.amount - st.supply.amount),
+                     "quantity exceeds available supply");
 
         statstable.modify(st, 0, [&](auto &s) {
             s.supply += quantity;
@@ -85,6 +84,11 @@ namespace token {
         if (to != st.issuer) {
             SEND_INLINE_ACTION(*this, transfer, { st.issuer, N(active) }, { st.issuer, to, quantity, memo });
         }
+    }
+
+    void vesting::buy(account_name from, account_name to, asset quantity, string memo) {
+        print("enter buy");
+        grantvesting(from,to,quantity,)
     }
 
     void vesting::transfer(account_name from,
@@ -131,7 +135,7 @@ namespace token {
             va.quantity = quantity;
             va.lock_until = lock_until;
         });
-        add_vesting(to, quantity, quantity, from);
+        add_vesting(to, quantity, asset{0, TOKEN_SYMBOL}, from);
     }
 
 
